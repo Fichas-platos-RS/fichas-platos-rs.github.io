@@ -205,6 +205,7 @@
         const data = await res.json();
         allFiles = (Array.isArray(data) ? data : [])
           .filter(f => f.name.toLowerCase().endsWith('.pdf'))
+          .filter(f => !f.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes('borrar'))
           .map(parseFile);
         statusDiv.textContent = `${allFiles.length} platos disponibles`;
         renderResults(searchInput.value);

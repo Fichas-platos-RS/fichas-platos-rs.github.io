@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
@@ -45,6 +46,12 @@ def request(url, method="GET", tries=3):
             time.sleep(2 * (i + 1))
 
 
+def excluded(name):
+    """Los PDF cuyo nombre contiene "borrar" (sin distinguir mayúsculas ni tildes) no se publican."""
+    plain = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower()
+    return "borrar" in plain
+
+
 def walk(folder_id, prefix="", seen=None):
     seen = seen if seen is not None else set()
     if folder_id in seen:
@@ -59,6 +66,8 @@ def walk(folder_id, prefix="", seen=None):
         name = html.unescape(title).strip()
         if "/folders/" in href or "folder" in icon:
             files += walk(fid, f"{prefix}{name}/", seen)
+        elif excluded(name):
+            print(f"Excluido: {name}")
         elif name.lower().endswith(".pdf") or "application/pdf" in icon:
             entry = {"id": fid, "name": name}
             if prefix:
