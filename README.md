@@ -19,7 +19,7 @@ No hace falta ninguna API Key de Google.
 - Se puede forzar una sincronización al momento desde **Actions → Sincronizar Drive y publicar → Run workflow**.
 - La web se publica con GitHub Pages en:
 
-**https://antoniomunozindio2.github.io/buscador-platos/**
+**https://fichas-platos-rs.github.io/**
 
 ## Uso
 
