@@ -7,8 +7,6 @@ on:
     # Se programa a todas las horas UTC posibles (invierno UTC+1 / verano UTC+2)
     # y el job "hora" deja pasar solo las que caen a las 12, 13, 19 o 20 en Madrid.
     - cron: "7 10,11,12,17,18,19 * * *"
-    # TEMPORAL: prueba de que la programación funciona (se quitará)
-    - cron: "22 8 * * *"
   workflow_dispatch:
   push:
     branches: [main]
