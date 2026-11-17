@@ -9,42 +9,14 @@ Aplicación web minimalista para buscar fichas técnicas (PDF) almacenadas en Go
 - Diseño elegante, rápido y optimizado para móviles
 - Ideal para QR / NFC: un solo enlace para todos los trabajadores
 
-## Configuración necesaria (una sola vez)
+## Cómo funciona la sincronización
 
-### 1. Haz pública la carpeta de Drive
+No hace falta ninguna API Key de Google.
 
-1. Abre la carpeta: [Fichas técnicas en pdf](https://drive.google.com/drive/folders/1EWy2BGDZigiy1-IfBEmVVbxisvDiqkPl)
-2. Haz clic en **Compartir**
-3. Cambia el acceso a **Cualquier persona con el enlace** → **Lector**
-4. Copia el enlace (ya lo tienes)
-
-### 2. Crea una API Key de Google
-
-1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
-2. Crea un proyecto nuevo (o usa uno existente)
-3. Activa la **Google Drive API**
-4. Ve a **Credenciales** → **Crear credenciales** → **Clave de API**
-5. (Recomendado) Restringe la clave solo a la Google Drive API
-6. Copia la clave
-
-### 3. Añade la API Key al proyecto
-
-1. Edita el archivo `index.html`
-2. Busca la línea:
-   ```js
-   const API_KEY = 'YOUR_GOOGLE_API_KEY';
-   ```
-3. Sustituye `YOUR_GOOGLE_API_KEY` por tu clave real
-4. Haz commit y push (o edita directamente en GitHub)
-
-### 4. Activa GitHub Pages
-
-1. Ve a **Settings** → **Pages** del repositorio
-2. Source: **Deploy from a branch**
-3. Branch: `main` / `/ (root)`
-4. Guarda
-
-En unos minutos la web estará disponible en:
+- La carpeta de Drive ([Fichas técnicas en pdf](https://drive.google.com/drive/folders/1EWy2BGDZigiy1-IfBEmVVbxisvDiqkPl)) debe estar compartida como **Cualquier persona con el enlace → Lector** (ya lo está).
+- Una GitHub Action (`.github/workflows/sync-drive.yml`) lee la carpeta **cada ~10 minutos**, regenera `files.json` con la lista de PDF y vuelve a publicar la web si algo ha cambiado.
+- Se puede forzar una sincronización al momento desde **Actions → Sincronizar Drive y publicar → Run workflow**.
+- La web se publica con GitHub Pages en:
 
 **https://antoniomunozindio2.github.io/buscador-platos/**
 
@@ -59,7 +31,7 @@ En unos minutos la web estará disponible en:
 
 Solo tienes que gestionar los PDF desde Google Drive:
 
-- Añadir un PDF nuevo → aparece automáticamente
+- Añadir un PDF nuevo → aparece automáticamente (en unos 10 minutos)
 - Eliminar un PDF → desaparece
 - Sustituir un PDF → se abre la versión nueva
 - Cambiar el nombre → se refleja en el buscador

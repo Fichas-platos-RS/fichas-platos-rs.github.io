@@ -138,16 +138,6 @@
       color: var(--text-muted);
       padding: 40px 20px;
     }
-    .config-warning {
-      background: #422006;
-      border: 1px solid #f59e0b;
-      color: #fde68a;
-      padding: 16px;
-      border-radius: 12px;
-      font-size: 0.9rem;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
     footer {
       margin-top: auto;
       padding-top: 32px;
@@ -163,10 +153,6 @@
       <h1>Buscador de Platos</h1>
       <p class="subtitle">Escanea el QR o NFC y busca por código o nombre</p>
     </header>
-
-    <div id="config-warning" class="config-warning" style="display:none;">
-      <strong>Configuración pendiente:</strong> Necesitas una API Key de Google Drive para sincronizar la carpeta. Sigue las instrucciones en el README del repositorio.
-    </div>
 
     <div class="search-box">
       <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -185,24 +171,23 @@
   </footer>
 
   <script>
-    const FOLDER_ID = '1EWy2BGDZigiy1-IfBEmVVbxisvDiqkPl';
-    const API_KEY = 'YOUR_GOOGLE_API_KEY'; // Reemplaza esto
+    // La lista de PDF (files.json) se regenera automáticamente desde Google Drive
+    // cada ~10 minutos mediante GitHub Actions (.github/workflows/sync-drive.yml).
 
     const searchInput = document.getElementById('search');
     const resultsDiv = document.getElementById('results');
     const statusDiv = document.getElementById('status');
-    const warningDiv = document.getElementById('config-warning');
 
     let allFiles = [];
 
     function parseFile(file) {
       const name = file.name.replace(/\.pdf$/i, '');
-      const match = name.match(/^(\d+)\s*[-–—]\s*(.+)$/);
+      const match = name.match(/^([A-Za-z]{0,3}\d+)\s*[-–—]\s*(.+)$/);
       if (match) {
         return { code: match[1], title: match[2].trim(), id: file.id, fullName: file.name };
       }
       // Fallback: try to extract any leading number
-      const numMatch = name.match(/^(\d+)/);
+      const numMatch = name.match(/^([A-Za-z]{0,3}\d+)/);
       return {
         code: numMatch ? numMatch[1] : '',
         title: name,
@@ -212,24 +197,17 @@
     }
 
     async function loadFiles() {
-      if (API_KEY === 'YOUR_GOOGLE_API_KEY') {
-        warningDiv.style.display = 'block';
-        statusDiv.textContent = 'Configura la API Key para continuar';
-        return;
-      }
-
       try {
-        const url = `https://www.googleapis.com/drive/v3/files?q='${FOLDER_ID}'+in+parents+and+trashed=false&key=${API_KEY}&fields=files(id,name,mimeType)&pageSize=1000&orderBy=name`;
-        const res = await fetch(url);
+        const res = await fetch(`./files.json?t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`Error ${res.status}`);
         const data = await res.json();
-        allFiles = (data.files || [])
-          .filter(f => f.mimeType === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'))
+        allFiles = (Array.isArray(data) ? data : [])
+          .filter(f => f.name.toLowerCase().endsWith('.pdf'))
           .map(parseFile);
         statusDiv.textContent = `${allFiles.length} platos disponibles`;
-        renderResults('');
+        renderResults(searchInput.value);
       } catch (err) {
-        statusDiv.textContent = 'Error al cargar desde Drive. Revisa la API Key y que la carpeta sea pública.';
+        statusDiv.textContent = 'Error al cargar la lista de platos. Inténtalo de nuevo en unos segundos.';
         console.error(err);
       }
     }
@@ -240,14 +218,14 @@
 
       if (q) {
         filtered = allFiles.filter(f => {
-          const codeMatch = f.code && f.code.includes(q);
+          const codeMatch = f.code && f.code.toLowerCase().includes(q);
           const nameMatch = f.title.toLowerCase().includes(q) || f.fullName.toLowerCase().includes(q);
           return codeMatch || nameMatch;
         });
         // Prefer exact code matches first
         filtered.sort((a, b) => {
-          const aExact = a.code === q ? 0 : 1;
-          const bExact = b.code === q ? 0 : 1;
+          const aExact = a.code.toLowerCase() === q ? 0 : 1;
+          const bExact = b.code.toLowerCase() === q ? 0 : 1;
           return aExact - bExact;
         });
       }
