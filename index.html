@@ -184,7 +184,7 @@
       const name = file.name.replace(/\.pdf$/i, '');
       const match = name.match(/^([A-Za-z]{0,3}\d+)\s*[-–—]\s*(.+)$/);
       if (match) {
-        return { code: match[1], title: match[2].trim(), id: file.id, fullName: file.name };
+        return { code: match[1], title: match[2].trim(), id: file.id, fullName: file.name, local: file.local !== false };
       }
       // Fallback: try to extract any leading number
       const numMatch = name.match(/^([A-Za-z]{0,3}\d+)/);
@@ -192,7 +192,8 @@
         code: numMatch ? numMatch[1] : '',
         title: name,
         id: file.id,
-        fullName: file.name
+        fullName: file.name,
+        local: file.local !== false
       };
     }
 
@@ -236,18 +237,22 @@
       }
 
       resultsDiv.innerHTML = filtered.slice(0, 50).map(f => `
-        <div class="card" onclick="openPDF('${f.id}')">
+        <div class="card" onclick="openPDF('${f.id}', ${f.local})">
           <div class="info">
             <div class="code">${f.code || '—'}</div>
             <div class="name">${f.title}</div>
           </div>
-          <button class="open-btn" onclick="event.stopPropagation(); openPDF('${f.id}')">Abrir</button>
+          <button class="open-btn" onclick="event.stopPropagation(); openPDF('${f.id}', ${f.local})">Abrir</button>
         </div>
       `).join('');
     }
 
-    function openPDF(id) {
-      window.open(`https://drive.google.com/file/d/${id}/view`, '_blank');
+    function openPDF(id, local) {
+      // Copia local publicada en la web (se abre directo en el visor del móvil).
+      // Si aún no está copiada, se usa el enlace de Drive como respaldo.
+      window.location.href = local
+        ? `./pdfs/${encodeURIComponent(id)}.pdf`
+        : `https://drive.google.com/file/d/${id}/view`;
     }
 
     searchInput.addEventListener('input', (e) => {

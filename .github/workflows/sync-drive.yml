@@ -20,14 +20,27 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     outputs:
-      changed: ${{ steps.commit.outputs.changed }}
+      publish: ${{ steps.commit.outputs.changed == 'true' || github.event_name != 'schedule' }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Leer la carpeta de Drive
-        run: python3 scripts/sync_drive.py
+      # Copias de los PDF guardadas entre ejecuciones (no se suben al repo)
+      - name: Recuperar PDF ya descargados
+        uses: actions/cache/restore@v4
+        with:
+          path: pdfs
+          key: pdfs-${{ github.run_id }}
+          restore-keys: pdfs-
+
+      - name: Leer Drive y descargar PDF nuevos o modificados
+        id: sync
+        run: |
+          before=$(sha256sum pdfs/.manifest.json 2>/dev/null || echo none)
+          python3 scripts/sync_drive.py
+          after=$(sha256sum pdfs/.manifest.json 2>/dev/null || echo none)
+          [ "$before" != "$after" ] && echo "pdfs_changed=true" >> "$GITHUB_OUTPUT" || true
 
       - name: Commit si hay cambios
         id: commit
@@ -44,28 +57,38 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Guardar PDF descargados
+        if: steps.sync.outputs.pdfs_changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: pdfs
+          key: pdfs-${{ hashFiles('files.json') }}-${{ github.run_id }}
+
+      - name: Preparar web
+        if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+        run: |
+          mkdir _site
+          cp index.html files.json README.md _site/
+          mkdir _site/pdfs
+          cp pdfs/*.pdf _site/pdfs/
+          touch _site/.nojekyll
+          du -sh _site
+
+      - if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+        uses: actions/configure-pages@v5
+
+      - if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
   deploy:
     needs: sync
-    if: needs.sync.outputs.changed == 'true' || github.event_name != 'schedule'
+    if: needs.sync.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Preparar web
-        run: |
-          mkdir _site
-          cp index.html files.json _site/
-          [ -f README.md ] && cp README.md _site/ || true
-          touch _site/.nojekyll
-
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
