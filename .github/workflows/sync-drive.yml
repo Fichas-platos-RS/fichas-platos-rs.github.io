@@ -2,12 +2,13 @@ name: Sincronizar Drive y publicar
 
 on:
   schedule:
-    # Objetivo: 12:00 y 19:00 hora de Madrid, todo el año.
-    # Se programa a ambas horas UTC posibles (invierno UTC+1 / verano UTC+2)
-    # y el job "hora" deja pasar solo la que cae a las 12 o las 19 en Madrid.
-    - cron: "7 10,11,17,18 * * *"
+    # Objetivo: 12:07 y 19:07 hora de Madrid, con copias de seguridad a las 13:07 y 20:07
+    # (si GitHub se salta alguna ejecución; si no hay cambios, no hace nada).
+    # Se programa a todas las horas UTC posibles (invierno UTC+1 / verano UTC+2)
+    # y el job "hora" deja pasar solo las que caen a las 12, 13, 19 o 20 en Madrid.
+    - cron: "7 10,11,12,17,18,19 * * *"
     # TEMPORAL: prueba de que la programación funciona (se quitará)
-    - cron: "44 7 * * *"
+    - cron: "22 8 * * *"
   workflow_dispatch:
   push:
     branches: [main]
@@ -34,7 +35,7 @@ jobs:
         run: |
           h=$(TZ=Europe/Madrid date +%H)
           echo "Evento: $EVENT ($SCHEDULE) - hora Madrid: $h"
-          if [ "$EVENT" != "schedule" ] || [ "$h" = "12" ] || [ "$h" = "19" ] || [ "$SCHEDULE" != "7 10,11,17,18 * * *" ]; then
+          if [ "$EVENT" != "schedule" ] || [ "$h" = "12" ] || [ "$h" = "13" ] || [ "$h" = "19" ] || [ "$h" = "20" ] || [ "$SCHEDULE" != "7 10,11,12,17,18,19 * * *" ]; then
             echo "go=true" >> "$GITHUB_OUTPUT"
           else
             echo "Fuera de hora: no se sincroniza"
