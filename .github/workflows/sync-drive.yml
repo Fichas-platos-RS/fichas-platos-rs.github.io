@@ -45,7 +45,7 @@ jobs:
     if: needs.hora.outputs.go == 'true'
     runs-on: ubuntu-latest
     outputs:
-      publish: ${{ steps.commit.outputs.changed == 'true' || github.event_name != 'schedule' }}
+      publish: ${{ steps.commit.outputs.changed == 'true' || steps.sync.outputs.pdfs_changed == 'true' || github.event_name == 'push' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,7 +90,7 @@ jobs:
           key: pdfs-${{ hashFiles('files.json') }}-${{ github.run_id }}
 
       - name: Preparar web
-        if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+        if: steps.commit.outputs.changed == 'true' || steps.sync.outputs.pdfs_changed == 'true' || github.event_name == 'push'
         run: |
           mkdir _site
           cp index.html files.json README.md _site/
@@ -99,13 +99,14 @@ jobs:
           touch _site/.nojekyll
           du -sh _site
 
-      - if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+      - if: steps.commit.outputs.changed == 'true' || steps.sync.outputs.pdfs_changed == 'true' || github.event_name == 'push'
         uses: actions/configure-pages@v5
 
-      - if: steps.commit.outputs.changed == 'true' || github.event_name != 'schedule'
+      - if: steps.commit.outputs.changed == 'true' || steps.sync.outputs.pdfs_changed == 'true' || github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+          retention-days: 1
 
   deploy:
     needs: sync
